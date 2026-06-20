@@ -14,22 +14,22 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Java Environment Set Up Karna
+    # 2. Java Environment Set Up Karna (Modern SDKs ke liye JDK 17 best hai)
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # 3. Modern Kotlin DSL Structure Mein Pure Project Ko Likhna (Sabse Safe Tarika)
+    # 3. Fresh Core Android Files Likhna (No Version Collision Engine)
     - name: Generate Real Android Project Files Automatically
       run: |
         mkdir -p app/src/main/java/com/futureai/app
         mkdir -p app/src/main/res/layout
         mkdir -p app/src/main/res/values
 
-        # Settings Configuration (Modern Kotlin DSL)
-        cat << 'EOF' > settings.gradle.kts
+        # Settings Configuration
+        cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories {
                 google()
@@ -45,45 +45,45 @@ jobs:
             }
         }
         rootProject.name = "FutureAI"
-        include(":app")
+        include ':app'
         EOF
 
-        # Root Build File (Modern Kotlin DSL)
-        cat << 'EOF' > build.gradle.kts
+        # Root Build File
+        cat << 'EOF' > build.gradle
         plugins {
-            id("com.android.application") version "8.1.1" apply false
+            id 'com.android.application' version '8.2.2' apply false
         }
         EOF
 
-        # App Level Build File (Modern Kotlin DSL - No Conflicts)
-        cat << 'EOF' > app/build.gradle.kts
+        # App Level Build File (Latest Safe Components)
+        cat << 'EOF' > app/build.gradle
         plugins {
-            id("com.android.application")
+            id 'com.android.application'
         }
 
         android {
-            namespace = "com.futureai.app"
-            compileSdk = 34
+            namespace 'com.futureai.app'
+            compileSdk 35
 
             defaultConfig {
-                applicationId = "com.futureai.app"
-                minSdk = 24
-                targetSdk = 34
-                versionCode = 1
-                versionName = "1.0"
+                applicationId "com.futureai.app"
+                minSdk 24
+                targetSdk 35
+                versionCode 1
+                versionName "1.0"
             }
 
             compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
             }
         }
 
         dependencies {
-            implementation("androidx.appcompat:appcompat:1.6.1")
-            implementation("com.google.android.material:material:1.9.0")
-            implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-            implementation("com.squareup.okhttp3:okhttp:4.10.0")
+            implementation 'androidx.appcompat:appcompat:1.7.0'
+            implementation 'com.google.android.material:material:1.12.0'
+            implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+            implementation 'com.squareup.okhttp3:okhttp:4.12.0'
         }
         EOF
 
@@ -103,7 +103,7 @@ jobs:
         </manifest>
         EOF
 
-        # Stable Layout Design
+        # Layout Design
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#F5F5F5">
@@ -199,7 +199,11 @@ jobs:
         </resources>
         EOF
         
-        touch gradle.properties
+        # Jetifier toggle & configuration properties
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        EOF
 
     # 4. Secrets Inject Karna
     - name: Inject Configuration Secrets Safely
@@ -207,16 +211,16 @@ jobs:
         echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
         echo "GITHUB_SECURE_TOKEN=${{ secrets.GH_TOKEN }}" >> local.properties
 
-    # 5. Environment Ready Karna (Automated & Isolated Version Setup)
+    # 5. Fixed Environment Tool Setup (Using 8.4 to support AGP 8.2.2 seamlessly)
     - name: Setup Gradle Environment
       uses: gradle/actions/setup-gradle@v4
       with:
-        gradle-version: 8.1.1
+        gradle-version: 8.4
 
-    # 6. Global Stable Build (Koi local wrapper mismatch nahi)
+    # 6. Safe Execution
     - name: Build with Global Gradle Command
       run: |
-        gradle assembleDebug
+        gradle assembleDebug --no-daemon
 
     # 7. APK File Ko Upload Karna
     - name: Upload Output Finished APK
