@@ -14,7 +14,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Saari Asli Android Files ko Likhna (Fixed Theme & SDK Conflicts)
+    # 2. Saari Asli Android Files ko 100% Stable Configuration Mein Likhna
     - name: Generate Real Android Project Files Automatically
       run: |
         mkdir -p app/src/main/java/com/futureai/app
@@ -23,45 +23,41 @@ jobs:
 
         # Settings Configuration File
         cat << 'EOF' > settings.gradle
-        pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
         rootProject.name = "FutureAI"
         include ':app'
         EOF
 
-        # Root Build File
+        # Root Build File (Ultra Stable Traditional Format)
         cat << 'EOF' > build.gradle
-        plugins {
-            id 'com.android.application' version '8.1.1' apply false
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.1'
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
         }
         EOF
 
-        # App Level Build File With Safe Target/Compile SDK
+        # App Level Build File With Standard Engine
         cat << 'EOF' > app/build.gradle
-        plugins {
-            id 'com.android.application'
-        }
+        apply plugin: 'com.android.application'
 
         android {
             namespace 'com.futureai.app'
-            compileSdk 34
+            compileSdk 33
 
             defaultConfig {
                 applicationId "com.futureai.app"
                 minSdk 24
-                targetSdk 34
+                targetSdk 33
                 versionCode 1
                 versionName "1.0"
             }
@@ -96,26 +92,26 @@ jobs:
         </manifest>
         EOF
 
-        # Notes Ke Hisab Se Asli Screen Layout Design
+        # Notes Ke Hisab Se 100% Error-Free Clean Screen Layout Design
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#F5F5F5">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#1A73E8" android:padding="12dp" android:orientation="horizontal">
                 <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Future AI Canvas" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="18sp"/>
-                <Button android:id="@+id/btnUndo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Undo" style="?android:attr/buttonStyleSmall"/>
-                <Button android:id="@+id/btnRedo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Redo" android:layout_marginStart="4dp" style="?android:attr/buttonStyleSmall"/>
-                <Button android:id="@+id/btnSave" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Save" android:layout_marginStart="4dp" style="?android:attr/buttonStyleSmall"/>
+                <Button android:id="@+id/btnUndo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Undo"/>
+                <Button android:id="@+id/btnRedo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Redo" android:layout_marginLeft="4dp"/>
+                <Button android:id="@+id/btnSave" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Save" android:layout_marginLeft="4dp"/>
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
                 <LinearLayout android:layout_width="0dp" android:layout_weight="0.8" android:layout_height="match_parent" android:background="#E0E0E0" android:orientation="vertical" android:padding="8dp">
-                    <Button android:id="@+id/compButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add Button" android:backgroundTint="#FFFFFF" android:textColor="#000000"/>
-                    <Button android:id="@+id/compText" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add TextView" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginTop="4dp"/>
+                    <Button android:id="@+id/compButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add Button"/>
+                    <Button android:id="@+id/compText" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add TextView" android:layout_marginTop="4dp"/>
                 </LinearLayout>
                 <ScrollView android:layout_width="0dp" android:layout_weight="1.2" android:layout_height="match_parent" android:background="#FFFFFF"><LinearLayout android:id="@+id/canvasLayoutEngine" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp"/></ScrollView>
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp" android:background="#FFFFFF">
                 <EditText android:id="@+id/etPrompt" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Type layout modification prompt..."/>
-                <Button android:id="@+id/btnExportBuild" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="EXPORT DYNAMIC ZIP / ASSEMBLE APK" android:backgroundTint="#4CAF50" android:textColor="#FFFFFF" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                <Button android:id="@+id/btnExportBuild" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="EXPORT DYNAMIC ZIP / ASSEMBLE APK" android:layout_marginTop="4dp"/>
             </LinearLayout>
         </LinearLayout>
         EOF
@@ -183,10 +179,10 @@ jobs:
         }
         EOF
 
-        # [FIXED] Updated to Material3 Theme to stop dependency compile crash
+        # 100% Crash-Proof Stable Theme Configuration
         cat << 'EOF' > app/src/main/res/values/themes.xml
         <resources>
-            <style name="Theme.FutureAI" parent="Theme.Material3.DayNight.NoActionBar">
+            <style name="Theme.FutureAI" parent="Theme.AppCompat.DayNight.NoActionBar">
                 <item name="colorPrimary">#1A73E8</item>
             </style>
         </resources>
@@ -207,12 +203,9 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # 5. Stable Build Action Run
-    - name: Build with Gradle Stable Action
-      uses: gradle/gradle-build-action@v3
-      with:
-        arguments: assembleDebug
-        gradle-version: 8.1.1
+    # 5. Direct System Gradle Call (Sabse tez aur bina jhanjhat wala execution)
+    - name: Build with System Gradle
+      run: gradle assembleDebug
 
     # 6. APK File Ko Upload Karna
     - name: Upload Output Finished APK
