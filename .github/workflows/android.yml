@@ -14,14 +14,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Java Environment Set Up Karna
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    # 3. Saari Android Project Files ko Clean Structure Mein Likhna
+    # 2. Saari Android Project Files ko Environment Setup Se Pehle Likhna
     - name: Generate Real Android Project Files Automatically
       run: |
         mkdir -p app/src/main/java/com/futureai/app
@@ -48,7 +41,7 @@ jobs:
         include ':app'
         EOF
 
-        # Root Build File (Modern DSL Pattern)
+        # Root Build File
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.1.1' apply false
@@ -201,20 +194,31 @@ jobs:
         
         touch gradle.properties
 
-    # 4. Secrets Inject Karna
+    # 3. Secrets Inject Karna
     - name: Inject Configuration Secrets Safely
       run: |
         echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
         echo "GITHUB_SECURE_TOKEN=${{ secrets.GH_TOKEN }}" >> local.properties
 
-    # 5. Official Automated Setup Engine With Right Version
-    - name: Setup Gradle and Build APK
+    # 4. Java Environment (JDK 17) Set Up Karna
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    # 5. Fixed Environment Configuration (No Arguments Block used here)
+    - name: Setup Gradle Environment
       uses: gradle/actions/setup-gradle@v4
       with:
         gradle-version: 8.1.1
-        arguments: assembleDebug
 
-    # 6. APK File Ko Upload Karna
+    # 6. Separate Standard Execution Build Call
+    - name: Build with Local Native Gradle Command
+      run: |
+        ./gradlew assembleDebug
+
+    # 7. APK File Ko Upload Karna
     - name: Upload Output Finished APK
       uses: actions/upload-artifact@v4
       with:
