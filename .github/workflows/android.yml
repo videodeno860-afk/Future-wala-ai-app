@@ -207,16 +207,16 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # 5. Fixed Environment Configuration (No Arguments Block used here)
+    # 5. Fixed Environment Configuration
     - name: Setup Gradle Environment
       uses: gradle/actions/setup-gradle@v4
       with:
         gradle-version: 8.1.1
 
-    # 6. Separate Standard Execution Build Call
-    - name: Build with Local Native Gradle Command
+    # 6. Global Gradle Command Call (No ./gradlew dependency)
+    - name: Build with Global Gradle Command
       run: |
-        ./gradlew assembleDebug
+        gradle assembleDebug
 
     # 7. APK File Ko Upload Karna
     - name: Upload Output Finished APK
