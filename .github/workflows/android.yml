@@ -21,21 +21,33 @@ jobs:
         mkdir -p app/src/main/res/layout
         mkdir -p app/src/main/res/values
 
-        # Settings Configuration File
+        # Settings Configuration File (Sare Repositories Yahan Manage Honge)
         cat << 'EOF' > settings.gradle
-        pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-        dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
         rootProject.name = "FutureAI"
         include ':app'
         EOF
 
-        # Root Build File
+        # Clean Root Build File (Takraav Hatane Ke Liye)
         cat << 'EOF' > build.gradle
         buildscript {
-            repositories { google(); mavenCentral() }
-            dependencies { classpath 'com.android.tools.build:gradle:8.1.1' }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.1'
+            }
         }
-        allprojects { repositories { google(); mavenCentral() } }
         EOF
 
         # App Level Build File With OkHttp Network Engine
@@ -183,8 +195,8 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # 5. Direct Gradle Build command (Bina kisi wrapper crash ke built-in compiler use karega)
-    - name: Build with Gradle
+    # 5. Fixed Build Environment Initialization Step
+    - name: Setup Gradle Build Environment
       uses: gradle/gradle-build-action@v3
       with:
         arguments: assembleDebug
@@ -196,4 +208,3 @@ jobs:
       with:
         name: Future-AI-Engine-APK
         path: app/build/outputs/apk/debug/*.apk
-        
