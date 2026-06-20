@@ -31,17 +31,26 @@ jobs:
 
         # Root Build File
         cat << 'EOF' > build.gradle
-        plugins { id 'com.android.application' version '8.1.1' apply false }
+        buildscript {
+            repositories { google(); mavenCentral() }
+            dependencies { classpath 'com.android.tools.build:gradle:8.1.1' }
+        }
+        allprojects { repositories { google(); mavenCentral() } }
         EOF
 
         # App Level Build File With OkHttp Network Engine
         cat << 'EOF' > app/build.gradle
-        plugins { id 'com.android.application' }
+        apply plugin: 'com.android.application'
         android {
             namespace 'com.futureai.app'
-            compileSdk 33
-            defaultConfig { applicationId "com.futureai.app"; minSdk 24; targetSdk 33; versionCode 1; versionName "1.0" }
-            compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+            compileSdkVersion 33
+            defaultConfig {
+                applicationId "com.futureai.app"
+                minSdkVersion 24
+                targetSdkVersion 33
+                versionCode 1
+                versionName "1.0"
+            }
         }
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -174,15 +183,14 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # 5. Setup Gradle Wrapper Automatically (Prevents Wrapper Mismatch Errors)
-    - name: Setup Gradle Wrapper
-      run: gradle wrapper --gradle-version 8.1.1
+    # 5. Direct Gradle Build command (Bina kisi wrapper crash ke built-in compiler use karega)
+    - name: Build with Gradle
+      uses: gradle/gradle-build-action@v3
+      with:
+        arguments: assembleDebug
+        gradle-version: 8.1.1
 
-    # 6. Compile and Build APK
-    - name: Compile and Build APK
-      run: ./gradlew assembleDebug
-
-    # 7. APK File Ko Upload Karna
+    # 6. APK File Ko Upload Karna
     - name: Upload Output Finished APK
       uses: actions/upload-artifact@v4
       with:
