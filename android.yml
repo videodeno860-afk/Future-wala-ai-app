@@ -1,0 +1,191 @@
+name: Future AI All-In-One Automatic Builder
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  generate_and_build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Repository ko check out karna
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GH_TOKEN }} # Aapka GitHub Personal Access Token
+
+    # 2. Saari Asli Android Files ko Khali Dabbe Mein Khud Likhna
+    - name: Generate Real Android Project Files Automatically
+      run: |
+        mkdir -p app/src/main/java/com/futureai/app
+        mkdir -p app/src/main/res/layout
+        mkdir -p app/src/main/res/values
+
+        # Settings Configuration File
+        cat << 'EOF' > settings.gradle
+        pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+        dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+        rootProject.name = "FutureAI"
+        include ':app'
+        EOF
+
+        # Root Build File
+        cat << 'EOF' > build.gradle
+        plugins { id 'com.android.application' version '8.1.1' apply false }
+        EOF
+
+        # App Level Build File With OkHttp Network Engine
+        cat << 'EOF' > app/build.gradle
+        plugins { id 'com.android.application' }
+        android {
+            namespace 'com.futureai.app'
+            compileSdk 33
+            defaultConfig { applicationId "com.futureai.app"; minSdk 24; targetSdk 33; versionCode 1; versionName "1.0" }
+            compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.9.0'
+            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+            implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+        }
+        EOF
+
+        # Security Manifest File
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application android:allowBackup="true" android:label="Future AI Builder" android:theme="@style/Theme.FutureAI">
+                <activity android:name=".MainActivity" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # Notes Ke Hisab Se Asli Screen Layout Design
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#F5F5F5">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#1A73E8" android:padding="12dp" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Future AI Canvas" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="18sp"/>
+                <Button android:id="@+id/btnUndo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Undo" style="?android:attr/buttonStyleSmall"/>
+                <Button android:id="@+id/btnRedo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Redo" android:layout_marginStart="4dp" style="?android:attr/buttonStyleSmall"/>
+                <Button android:id="@+id/btnSave" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Save" android:layout_marginStart="4dp" style="?android:attr/buttonStyleSmall"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+                <LinearLayout android:layout_width="0dp" android:layout_weight="0.8" android:layout_height="match_parent" android:background="#E0E0E0" android:orientation="vertical" android:padding="8dp">
+                    <Button android:id="@+id/compButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add Button" android:backgroundTint="#FFFFFF" android:textColor="#000000"/>
+                    <Button android:id="@+id/compText" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add TextView" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+                <ScrollView android:layout_width="0dp" android:layout_weight="1.2" android:layout_height="match_parent" android:background="#FFFFFF"><LinearLayout android:id="@+id/canvasLayoutEngine" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp"/></ScrollView>
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp" android:background="#FFFFFF">
+                <EditText android:id="@+id/etPrompt" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Type layout modification prompt..."/>
+                <Button android:id="@+id/btnExportBuild" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="EXPORT DYNAMIC ZIP / ASSEMBLE APK" android:backgroundTint="#4CAF50" android:textColor="#FFFFFF" android:textStyle="bold" android:layout_marginTop="4dp"/>
+            </LinearLayout>
+        </LinearLayout>
+        EOF
+
+        # Core Java Logic (GitHub Trigger System With Token)
+        cat << 'EOF' > app/src/main/java/com/futureai/app/MainActivity.java
+        package com.futureai.app;
+        import android.os.Bundle;
+        import android.view.View;
+        import android.widget.*;
+        import androidx.appcompat.app.AppCompatActivity;
+        import java.io.InputStream;
+        import java.util.Properties;
+        import okhttp3.*;
+
+        public class MainActivity extends AppCompatActivity {
+            private String secureToken = "";
+            private String geminiKey = "";
+            private LinearLayout canvas;
+            private final OkHttpClient client = new OkHttpClient();
+
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_main);
+                canvas = findViewById(R.id.canvasLayoutEngine);
+                Button btnExport = findViewById(R.id.btnExportBuild);
+                EditText etPrompt = findViewById(R.id.etPrompt);
+
+                try {
+                    Properties prop = new Properties();
+                    InputStream is = getAssets().open("local.properties");
+                    prop.load(is);
+                    geminiKey = prop.getProperty("GEMINI_API_KEY", "");
+                    secureToken = prop.getProperty("GITHUB_SECURE_TOKEN", "");
+                } catch (Exception e) {
+                    geminiKey = "KEY_NOT_INJECTED";
+                    secureToken = "TOKEN_NOT_INJECTED";
+                }
+
+                findViewById(R.id.compButton).setOnClickListener(v -> {
+                    Button b = new Button(this); b.setText("AI Button Element"); canvas.addView(b);
+                });
+                findViewById(R.id.compText).setOnClickListener(v -> {
+                    TextView t = new TextView(this); t.setText("AI Text Node"); canvas.addView(t);
+                });
+
+                btnExport.setOnClickListener(v -> {
+                    String pr = etPrompt.getText().toString().trim();
+                    if(pr.isEmpty()) return;
+                    Toast.makeText(this, "Connecting to Remote GitHub Actions Server...", Toast.LENGTH_SHORT).show();
+                    
+                    // Asli logic jo direct aapki GitHub repo par dispatch request bhejega
+                    RequestBody body = RequestBody.create("{\"ref\":\"main\"}", MediaType.parse("application/json"));
+                    Request req = new Request.Builder()
+                        .url("https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO/actions/workflows/android.yml/dispatches")
+                        .post(body)
+                        .addHeader("Authorization", "token " + secureToken)
+                        .build();
+                    client.newCall(req).enqueue(new Callback() {
+                        @Override public void onFailure(Call c, java.io.IOException e) {}
+                        @Override public void onResponse(Call c, Response r) throws java.io.IOException { r.close(); }
+                    });
+                });
+            }
+        }
+        EOF
+
+        # Theme Resources File
+        cat << 'EOF' > app/src/main/res/values/themes.xml
+        <resources><style name="Theme.FutureAI" parent="Theme.MaterialComponents.DayNight.NoActionBar"><item name="colorPrimary">#1A73E8</item></style></resources>
+        EOF
+
+        # Essential Gradle Build Executables
+        touch gradlew && chmod +x gradlew
+        touch gradle.properties
+
+    # 3. Jo Secret Keys Hain Unhe Setup Files Mein Likkhna
+    - name: Inject Configuration Secrets Safely
+      run: |
+        echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
+        echo "GITHUB_SECURE_TOKEN=${{ secrets.GH_TOKEN }}" >> local.properties
+
+    # 4. Generated Code Ko Java Environment Se APK Mein Compile Karna
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: 'gradle'
+
+    - name: Compile and Build APK
+      run: ./gradlew assembleRelease
+
+    # 5. Output Result Upload Karna (Download Ke Liye)
+    - name: Upload Output Finished APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Future-AI-Engine-APK
+        path: app/build/outputs/apk/release/*.apk
