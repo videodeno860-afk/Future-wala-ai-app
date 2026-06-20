@@ -14,14 +14,14 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Saari Asli Android Files ko Khali Dabbe Mein Khud Likhna
+    # 2. Saari Asli Android Files ko Clean Modern Layout Mein Likhna
     - name: Generate Real Android Project Files Automatically
       run: |
         mkdir -p app/src/main/java/com/futureai/app
         mkdir -p app/src/main/res/layout
         mkdir -p app/src/main/res/values
 
-        # Settings Configuration File (Sare Repositories Yahan Manage Honge)
+        # Settings Configuration File (Sare Repositories Aur Plugins Ek Hi Jagah)
         cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories {
@@ -41,29 +41,37 @@ jobs:
         include ':app'
         EOF
 
-        # Clean Root Build File (Takraav Hatane Ke Liye)
+        # Root Build File (Modern DSL Pattern - No Repositories Here)
         cat << 'EOF' > build.gradle
-        buildscript {
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.1'
-            }
+        plugins {
+            id 'com.android.application' version '8.1.1' apply false
         }
         EOF
 
-        # App Level Build File With OkHttp Network Engine
+        # App Level Build File With Modern Block Structure
         cat << 'EOF' > app/build.gradle
-        apply plugin: 'com.android.application'
+        plugins {
+            id 'com.android.application'
+        }
+
         android {
             namespace 'com.futureai.app'
-            compileSdkVersion 33
+            compileSdk 33
+
             defaultConfig {
                 applicationId "com.futureai.app"
-                minSdkVersion 24
-                targetSdkVersion 33
+                minSdk 24
+                targetSdk 33
                 versionCode 1
                 versionName "1.0"
             }
+
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
         }
+
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.9.0'
@@ -188,15 +196,15 @@ jobs:
         echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
         echo "GITHUB_SECURE_TOKEN=${{ secrets.GH_TOKEN }}" >> local.properties
 
-    # 4. Java Environment Set Up Karna
+    # 4. Java Environment (JDK 17) Set Up Karna
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # 5. Fixed Build Environment Initialization Step
-    - name: Setup Gradle Build Environment
+    # 5. Stable Action to Build Android Package Without Legacy Interferences
+    - name: Build with Gradle Stable Action
       uses: gradle/gradle-build-action@v3
       with:
         arguments: assembleDebug
@@ -208,3 +216,4 @@ jobs:
       with:
         name: Future-AI-Engine-APK
         path: app/build/outputs/apk/debug/*.apk
+        
