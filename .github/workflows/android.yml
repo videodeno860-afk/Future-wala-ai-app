@@ -14,14 +14,14 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Saari Asli Android Files ko Clean Modern Layout Mein Likhna
+    # 2. Saari Asli Android Files ko Likhna (Fixed Theme & SDK Conflicts)
     - name: Generate Real Android Project Files Automatically
       run: |
         mkdir -p app/src/main/java/com/futureai/app
         mkdir -p app/src/main/res/layout
         mkdir -p app/src/main/res/values
 
-        # Settings Configuration File (Sare Repositories Aur Plugins Ek Hi Jagah)
+        # Settings Configuration File
         cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories {
@@ -41,14 +41,14 @@ jobs:
         include ':app'
         EOF
 
-        # Root Build File (Modern DSL Pattern - No Repositories Here)
+        # Root Build File
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.1.1' apply false
         }
         EOF
 
-        # App Level Build File With Modern Block Structure
+        # App Level Build File With Safe Target/Compile SDK
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -56,12 +56,12 @@ jobs:
 
         android {
             namespace 'com.futureai.app'
-            compileSdk 33
+            compileSdk 34
 
             defaultConfig {
                 applicationId "com.futureai.app"
                 minSdk 24
-                targetSdk 33
+                targetSdk 34
                 versionCode 1
                 versionName "1.0"
             }
@@ -183,9 +183,13 @@ jobs:
         }
         EOF
 
-        # Theme Resources File
+        # [FIXED] Updated to Material3 Theme to stop dependency compile crash
         cat << 'EOF' > app/src/main/res/values/themes.xml
-        <resources><style name="Theme.FutureAI" parent="Theme.MaterialComponents.DayNight.NoActionBar"><item name="colorPrimary">#1A73E8</item></style></resources>
+        <resources>
+            <style name="Theme.FutureAI" parent="Theme.Material3.DayNight.NoActionBar">
+                <item name="colorPrimary">#1A73E8</item>
+            </style>
+        </resources>
         EOF
         
         touch gradle.properties
@@ -203,7 +207,7 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # 5. Stable Action to Build Android Package Without Legacy Interferences
+    # 5. Stable Build Action Run
     - name: Build with Gradle Stable Action
       uses: gradle/gradle-build-action@v3
       with:
