@@ -21,12 +21,7 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # 3. Khali Folder Mein Pehle Safe Wrapper Generate Karna (No-Evaluation Trick)
-    - name: Generate Safe Gradle Wrapper First
-      run: |
-        gradle wrapper --gradle-version 8.1.1
-
-    # 4. Ab Saari Android Project Files ko Clean Structure Mein Likhna
+    # 3. Saari Android Project Files ko Clean Structure Mein Likhna
     - name: Generate Real Android Project Files Automatically
       run: |
         mkdir -p app/src/main/java/com/futureai/app
@@ -206,19 +201,20 @@ jobs:
         
         touch gradle.properties
 
-    # 5. Secrets Inject Karna
+    # 4. Secrets Inject Karna
     - name: Inject Configuration Secrets Safely
       run: |
         echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
         echo "GITHUB_SECURE_TOKEN=${{ secrets.GH_TOKEN }}" >> local.properties
 
-    # 6. Generated Local Wrapper Se Build Karna (100% Error-Free)
-    - name: Build with Local Gradlew Wrapper
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug
+    # 5. Official Automated Setup Engine With Right Version
+    - name: Setup Gradle and Build APK
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: 8.1.1
+        arguments: assembleDebug
 
-    # 7. APK File Ko Upload Karna
+    # 6. APK File Ko Upload Karna
     - name: Upload Output Finished APK
       uses: actions/upload-artifact@v4
       with:
