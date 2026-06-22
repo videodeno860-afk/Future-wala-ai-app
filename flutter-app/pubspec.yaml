@@ -1,0 +1,36 @@
+name: future_ai
+description: Future AI - All-in-one AI assistant, app & game builder, image generator, learning, marketplace.
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.5
+  flutter_riverpod: ^2.3.8
+  firebase_core: ^2.22.0
+  firebase_auth: ^4.7.0
+  cloud_firestore: ^4.7.0
+  firebase_storage: ^11.3.0
+  firebase_messaging: ^14.6.0
+  http: ^0.14.1
+  flutter_tts: ^3.6.0
+  speech_to_text: ^5.11.0
+  uuid: ^3.0.7
+  intl: ^0.18.1
+  animations: ^2.0.6
+  permission_handler: ^11.3.1
+  flutter_local_notifications: ^13.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
