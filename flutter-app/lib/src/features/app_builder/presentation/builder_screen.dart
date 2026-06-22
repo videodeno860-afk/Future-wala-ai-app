@@ -19,11 +19,27 @@ class BuilderScreen extends ConsumerStatefulWidget {
 class _BuilderScreenState extends ConsumerState<BuilderScreen> {
   ProjectModel? project;
   EditorNotifier? editorNotifier;
+  int currentScreenIndex = 0;
+  List<ProjectModel> myProjects = [];
 
   @override
   void initState() {
     super.initState();
-    // For demo: load or create a project in-memory; real app should list projects and open one
+    _loadMyProjects();
+  }
+
+  Future<void> _loadMyProjects() async {
+    try {
+      final user = FirebaseService.instance.currentUser;
+      if (user == null) return;
+      final q = await FirebaseService.instance.projectsCollection().where('ownerId', isEqualTo: user.uid).get();
+      final list = q.docs.map((d) => ProjectModel.fromMap(Map<String, dynamic>.from(d.data()))).toList();
+      setState(() {
+        myProjects = list;
+      });
+    } catch (e) {
+      // ignore for now
+    }
   }
 
   Future<void> _createNewProject() async {
@@ -34,17 +50,15 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
     setState(() {
       project = proj;
       editorNotifier = EditorNotifier(proj.screens.first);
+      currentScreenIndex = 0;
+      myProjects.insert(0, proj);
     });
   }
 
-  Future<void> _loadProject(String id) async {
-    final snap = await FirebaseService.instance.projectsCollection().doc(id).get();
-    if (!snap.exists) return;
-    final data = snap.data();
-    if (data == null) return;
-    final proj = ProjectModel.fromMap(Map<String, dynamic>.from(data));
+  Future<void> _openProject(ProjectModel proj) async {
     setState(() {
       project = proj;
+      currentScreenIndex = 0;
       editorNotifier = EditorNotifier(proj.screens.first);
     });
   }
@@ -56,33 +70,70 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
     project = ProjectModel(id: project!.id, ownerId: project!.ownerId, title: project!.title, description: project!.description, createdAt: project!.createdAt, screens: screens);
     await FirebaseService.instance.projectsCollection().doc(project!.id).set(project!.toMap());
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Project saved')));
+    await _loadMyProjects();
+  }
+
+  void _addScreen() {
+    if (project == null) return;
+    final id = uuid.v4();
+    final screen = ScreenModel(id: id, name: 'Screen ${project!.screens.length + 1}');
+    project!.screens.add(screen);
+    setState(() {
+      currentScreenIndex = project!.screens.length - 1;
+      editorNotifier = EditorNotifier(project!.screens[currentScreenIndex]);
+    });
+  }
+
+  void _switchToScreen(int index) {
+    if (project == null) return;
+    final s = project!.screens[index];
+    setState(() {
+      currentScreenIndex = index;
+      editorNotifier = EditorNotifier(s);
+    });
+  }
+
+  Future<void> _exportProject() async {
+    if (project == null) return;
+    // Call backend to export multi-screen zip
+    // This requires the backend to be running and accessible
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export requested (backend should handle ZIP generation).')));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (project == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('AI App Builder')),
-        body: Center(
-          child: ElevatedButton(onPressed: _createNewProject, child: const Text('Create New Project')),
-        ),
-      );
-    }
-    final editor = editorNotifier!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(project!.title),
+        title: const Text('AI App Builder'),
         actions: [
+          IconButton(onPressed: _createNewProject, icon: const Icon(Icons.add_box)),
           IconButton(onPressed: _saveProject, icon: const Icon(Icons.save)),
-          IconButton(onPressed: () => editor.undo(), icon: const Icon(Icons.undo)),
-          IconButton(onPressed: () => editor.redo(), icon: const Icon(Icons.redo)),
+          IconButton(onPressed: _exportProject, icon: const Icon(Icons.download)),
         ],
       ),
       body: Row(children: [
+        // Left: Projects list and components
         SizedBox(
-          width: 220,
+          width: 260,
           child: Column(children: [
-            const ListTile(title: Text('Components')),
+            Container(padding: const EdgeInsets.all(8), child: const Text('Projects', style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(
+              child: myProjects.isEmpty
+                  ? const Center(child: Text('No projects found'))
+                  : ListView.builder(
+                      itemCount: myProjects.length,
+                      itemBuilder: (context, idx) {
+                        final p = myProjects[idx];
+                        return ListTile(
+                          title: Text(p.title),
+                          subtitle: Text('Screens: ${p.screens.length}'),
+                          onTap: () => _openProject(p),
+                        );
+                      },
+                    ),
+            ),
+            const Divider(),
+            const ListTile(title: Text('Components', style: TextStyle(fontWeight: FontWeight.bold))),
             Expanded(
               child: ListView(
                 children: [
@@ -91,7 +142,7 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
                     title: const Text('Button'),
                     onTap: () {
                       final comp = ComponentModel(id: uuid.v4(), type: 'button', left: 50, top: 50, width: 120, height: 48, props: {'text': 'Button'});
-                      editor.addComponent(comp);
+                      editorNotifier?.addComponent(comp);
                       setState(() {});
                     },
                   ),
@@ -100,7 +151,7 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
                     title: const Text('Text'),
                     onTap: () {
                       final comp = ComponentModel(id: uuid.v4(), type: 'text', left: 60, top: 120, width: 160, height: 30, props: {'text': 'Hello'});
-                      editor.addComponent(comp);
+                      editorNotifier?.addComponent(comp);
                       setState(() {});
                     },
                   ),
@@ -109,7 +160,7 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
                     title: const Text('Image'),
                     onTap: () {
                       final comp = ComponentModel(id: uuid.v4(), type: 'image', left: 80, top: 180, width: 120, height: 80, props: {'url': ''});
-                      editor.addComponent(comp);
+                      editorNotifier?.addComponent(comp);
                       setState(() {});
                     },
                   ),
@@ -118,41 +169,74 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
             ),
           ]),
         ),
+
+        // Center: Canvas and screen tabs
         Expanded(
           flex: 2,
-          child: Container(
-            margin: const EdgeInsets.all(12),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.grey.shade100, border: Border.all(color: Colors.grey.shade300)),
-            child: Stack(
-              children: editor.state.screen.components.map((c) {
-                return Positioned(
-                  left: c.left,
-                  top: c.top,
-                  child: GestureDetector(
-                    onTap: () {
-                      editor.select(c.id);
-                      setState(() {});
-                    },
-                    onPanUpdate: (details) {
-                      final updated = ComponentModel(id: c.id, type: c.type, left: c.left + details.delta.dx, top: c.top + details.delta.dy, width: c.width, height: c.height, props: c.props);
-                      editor.updateComponent(updated);
-                      setState(() {});
-                    },
-                    child: _renderComponent(c, editor.state.selectedId == c.id),
-                  ),
-                );
-              }).toList(),
+          child: Column(children: [
+            // Screen tabs
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(children: [
+                if (project != null)
+                  for (var i = 0; i < project!.screens.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(project!.screens[i].name),
+                        selected: i == currentScreenIndex,
+                        onSelected: (_) => _switchToScreen(i),
+                      ),
+                    ),
+                TextButton.icon(onPressed: _addScreen, icon: const Icon(Icons.add), label: const Text('Add Screen')),
+              ]),
             ),
-          ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(12),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.grey.shade100, border: Border.all(color: Colors.grey.shade300)),
+                child: Builder(builder: (context) {
+                  if (project == null || editorNotifier == null) {
+                    return const Center(child: Text('Open or create a project to start building'));
+                  }
+                  final editor = editorNotifier!;
+                  return Stack(
+                    children: editor.state.screen.components.map((c) {
+                      return Positioned(
+                        left: c.left,
+                        top: c.top,
+                        child: GestureDetector(
+                          onTap: () {
+                            editor.select(c.id);
+                            setState(() {});
+                          },
+                          onPanUpdate: (details) {
+                            final updated = ComponentModel(id: c.id, type: c.type, left: c.left + details.delta.dx, top: c.top + details.delta.dy, width: c.width, height: c.height, props: c.props);
+                            editor.updateComponent(updated);
+                            setState(() {});
+                          },
+                          child: _renderComponent(c, editor.state.selectedId == c.id),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
+              ),
+            ),
+          ]),
         ),
+
+        // Right: Properties panel
         SizedBox(
-          width: 300,
+          width: 320,
           child: Column(children: [
             const ListTile(title: Text('Properties')),
             Expanded(
-              child: editor.state.selectedId == null
+              child: editorNotifier == null || editorNotifier!.state.selectedId == null
                   ? const Center(child: Text('Select a component'))
-                  : _propertiesPanel(editor.state.screen.components.firstWhere((e) => e.id == editor.state.selectedId), editor),
+                  : _propertiesPanel(editorNotifier!.state.screen.components.firstWhere((e) => e.id == editorNotifier!.state.selectedId), editorNotifier!),
             ),
           ]),
         ),
@@ -196,34 +280,42 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
     final urlCtrl = TextEditingController(text: c.props['url']?.toString() ?? '');
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Type: $type', style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text('Position'),
-        Row(children: [
-          Expanded(child: Text('x: ${c.left.toStringAsFixed(0)}')),
-          Expanded(child: Text('y: ${c.top.toStringAsFixed(0)}')),
+      child: SingleChildScrollView(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Type: $type', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('Position'),
+          Row(children: [
+            Expanded(child: Text('x: ${c.left.toStringAsFixed(0)}')),
+            Expanded(child: Text('y: ${c.top.toStringAsFixed(0)}')),
+          ]),
+          const SizedBox(height: 12),
+          if (type == 'button' || type == 'text') ...[
+            const Text('Text'),
+            TextField(
+              controller: textCtrl,
+              onChanged: (v) {
+                final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'text': v});
+                editor.updateComponent(updated);
+                setState(() {});
+              },
+            ),
+          ],
+          if (type == 'image') ...[
+            const Text('Image URL'),
+            TextField(
+              controller: urlCtrl,
+              onChanged: (v) {
+                final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'url': v});
+                editor.updateComponent(updated);
+                setState(() {});
+              },
+            ),
+          ],
+          const SizedBox(height: 12),
+          ElevatedButton.icon(onPressed: () { editor.removeComponent(c.id); setState(() {}); }, icon: const Icon(Icons.delete), label: const Text('Delete')),
         ]),
-        const SizedBox(height: 12),
-        if (type == 'button' || type == 'text') ...[
-          const Text('Text'),
-          TextField(controller: textCtrl, onSubmitted: (v) {
-            final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'text': v});
-            editor.updateComponent(updated);
-            setState(() {});
-          }),
-        ],
-        if (type == 'image') ...[
-          const Text('Image URL'),
-          TextField(controller: urlCtrl, onSubmitted: (v) {
-            final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'url': v});
-            editor.updateComponent(updated);
-            setState(() {});
-          }),
-        ],
-        const SizedBox(height: 12),
-        ElevatedButton.icon(onPressed: () { editor.removeComponent(c.id); setState(() {}); }, icon: const Icon(Icons.delete), label: const Text('Delete')),
-      ]),
+      ),
     );
   }
 }

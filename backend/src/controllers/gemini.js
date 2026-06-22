@@ -1,8 +1,6 @@
-const functions = require('firebase-functions');
 const express = require('express');
-const fetch = require('node-fetch');
-
 const router = express.Router();
+const fetch = require('node-fetch');
 
 // Proxy to Gemini-like API using GEMINI_API_KEY secret
 router.post('/generate', async (req, res) => {
