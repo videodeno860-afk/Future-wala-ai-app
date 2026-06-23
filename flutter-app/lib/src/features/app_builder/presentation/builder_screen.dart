@@ -16,16 +16,24 @@ class BuilderScreen extends ConsumerStatefulWidget {
   ConsumerState<BuilderScreen> createState() => _BuilderScreenState();
 }
 
-class _BuilderScreenState extends ConsumerState<BuilderScreen> {
+class _BuilderScreenState extends ConsumerState<BuilderScreen> with SingleTickerProviderStateMixin {
   ProjectModel? project;
   EditorNotifier? editorNotifier;
   int currentScreenIndex = 0;
   List<ProjectModel> myProjects = [];
+  late AnimationController _animController;
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
     _loadMyProjects();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMyProjects() async {
@@ -95,8 +103,6 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
 
   Future<void> _exportProject() async {
     if (project == null) return;
-    // Call backend to export multi-screen zip
-    // This requires the backend to be running and accessible
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export requested (backend should handle ZIP generation).')));
   }
 
@@ -106,68 +112,48 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
       appBar: AppBar(
         title: const Text('AI App Builder'),
         actions: [
-          IconButton(onPressed: _createNewProject, icon: const Icon(Icons.add_box)),
+          IconButton(onPressed: _createNewProject, icon: const Icon(Icons.create_new_folder)),
           IconButton(onPressed: _saveProject, icon: const Icon(Icons.save)),
           IconButton(onPressed: _exportProject, icon: const Icon(Icons.download)),
         ],
       ),
       body: Row(children: [
-        // Left: Projects list and components
+        // Left: Projects list and components (narrowed and polished)
         SizedBox(
-          width: 260,
-          child: Column(children: [
-            Container(padding: const EdgeInsets.all(8), child: const Text('Projects', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(
-              child: myProjects.isEmpty
-                  ? const Center(child: Text('No projects found'))
-                  : ListView.builder(
-                      itemCount: myProjects.length,
-                      itemBuilder: (context, idx) {
-                        final p = myProjects[idx];
-                        return ListTile(
-                          title: Text(p.title),
-                          subtitle: Text('Screens: ${p.screens.length}'),
-                          onTap: () => _openProject(p),
-                        );
-                      },
-                    ),
-            ),
-            const Divider(),
-            const ListTile(title: Text('Components', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(
-              child: ListView(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.smart_button),
-                    title: const Text('Button'),
-                    onTap: () {
-                      final comp = ComponentModel(id: uuid.v4(), type: 'button', left: 50, top: 50, width: 120, height: 48, props: {'text': 'Button'});
-                      editorNotifier?.addComponent(comp);
-                      setState(() {});
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.text_fields),
-                    title: const Text('Text'),
-                    onTap: () {
-                      final comp = ComponentModel(id: uuid.v4(), type: 'text', left: 60, top: 120, width: 160, height: 30, props: {'text': 'Hello'});
-                      editorNotifier?.addComponent(comp);
-                      setState(() {});
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.image),
-                    title: const Text('Image'),
-                    onTap: () {
-                      final comp = ComponentModel(id: uuid.v4(), type: 'image', left: 80, top: 180, width: 120, height: 80, props: {'url': ''});
-                      editorNotifier?.addComponent(comp);
-                      setState(() {});
-                    },
-                  ),
-                ],
+          width: 280,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: Column(children: [
+              TextField(decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: 'Search projects', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+              const SizedBox(height: 12),
+              Expanded(
+                child: myProjects.isEmpty
+                    ? Center(child: Text('No projects', style: Theme.of(context).textTheme.bodyMedium))
+                    : ListView.builder(
+                        itemCount: myProjects.length,
+                        itemBuilder: (context, idx) {
+                          final p = myProjects[idx];
+                          return GestureDetector(
+                            onTap: () => _openProject(p),
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              child: ListTile(
+                                leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.primary, child: Text(p.title.isNotEmpty ? p.title[0] : '?', style: const TextStyle(color: Colors.white))),
+                                title: Text(p.title),
+                                subtitle: Text('${p.screens.length} screens'),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
-            ),
-          ]),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: FloatingActionButton(onPressed: _createNewProject, child: const Icon(Icons.add))),
+            ]),
+          ),
         ),
 
         // Center: Canvas and screen tabs
@@ -176,8 +162,8 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
           child: Column(children: [
             // Screen tabs
             Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              color: Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(children: [
                 if (project != null)
                   for (var i = 0; i < project!.screens.length; i++)
@@ -187,41 +173,45 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
                         label: Text(project!.screens[i].name),
                         selected: i == currentScreenIndex,
                         onSelected: (_) => _switchToScreen(i),
+                        selectedColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                TextButton.icon(onPressed: _addScreen, icon: const Icon(Icons.add), label: const Text('Add Screen')),
+                if (project == null) const Text('No project open', style: TextStyle(color: Colors.grey)),
+                const Spacer(),
+                ElevatedButton.icon(onPressed: _addScreen, icon: const Icon(Icons.add), label: const Text('Add Screen')),
               ]),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(12),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.grey.shade100, border: Border.all(color: Colors.grey.shade300)),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Colors.grey.shade100, border: Border.all(color: Colors.grey.shade200)),
                 child: Builder(builder: (context) {
                   if (project == null || editorNotifier == null) {
-                    return const Center(child: Text('Open or create a project to start building'));
+                    return Center(child: Text('Open or create a project to start building', style: Theme.of(context).textTheme.titleMedium));
                   }
                   final editor = editorNotifier!;
-                  return Stack(
-                    children: editor.state.screen.components.map((c) {
-                      return Positioned(
-                        left: c.left,
-                        top: c.top,
-                        child: GestureDetector(
-                          onTap: () {
-                            editor.select(c.id);
-                            setState(() {});
-                          },
-                          onPanUpdate: (details) {
-                            final updated = ComponentModel(id: c.id, type: c.type, left: c.left + details.delta.dx, top: c.top + details.delta.dy, width: c.width, height: c.height, props: c.props);
-                            editor.updateComponent(updated);
-                            setState(() {});
-                          },
-                          child: _renderComponent(c, editor.state.selectedId == c.id),
-                        ),
-                      );
-                    }).toList(),
-                  );
+                  return LayoutBuilder(builder: (context, constraints) {
+                    // grid background
+                    return Stack(children: [
+                      CustomPaint(size: Size(constraints.maxWidth, constraints.maxHeight), painter: _GridPainter()),
+                      ...editor.state.screen.components.map((c) {
+                        return Positioned(
+                          left: c.left,
+                          top: c.top,
+                          child: GestureDetector(
+                            onTap: () { editor.select(c.id); setState(() {}); },
+                            onPanUpdate: (details) {
+                              final updated = ComponentModel(id: c.id, type: c.type, left: c.left + details.delta.dx, top: c.top + details.delta.dy, width: c.width, height: c.height, props: c.props);
+                              editor.updateComponent(updated);
+                              setState(() {});
+                            },
+                            child: _renderComponent(c, editor.state.selectedId == c.id),
+                          ),
+                        );
+                      }).toList(),
+                    ]);
+                  });
                 }),
               ),
             ),
@@ -230,45 +220,28 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
 
         // Right: Properties panel
         SizedBox(
-          width: 320,
-          child: Column(children: [
-            const ListTile(title: Text('Properties')),
-            Expanded(
-              child: editorNotifier == null || editorNotifier!.state.selectedId == null
-                  ? const Center(child: Text('Select a component'))
-                  : _propertiesPanel(editorNotifier!.state.screen.components.firstWhere((e) => e.id == editorNotifier!.state.selectedId), editorNotifier!),
-            ),
-          ]),
+          width: 360,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            color: Colors.white,
+            child: editorNotifier == null || editorNotifier!.state.selectedId == null
+                ? Center(child: Text('Select a component', style: Theme.of(context).textTheme.bodyLarge))
+                : _propertiesPanel(editorNotifier!.state.screen.components.firstWhere((e) => e.id == editorNotifier!.state.selectedId), editorNotifier!),
+          ),
         ),
       ]),
     );
   }
 
   Widget _renderComponent(ComponentModel c, bool selected) {
-    final border = selected ? Border.all(color: Colors.blue, width: 2) : Border.all(color: Colors.transparent);
+    final border = selected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : Border.all(color: Colors.transparent);
     switch (c.type) {
       case 'button':
-        return Container(
-          width: c.width,
-          height: c.height,
-          decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(8), border: border),
-          alignment: Alignment.center,
-          child: Text(c.props['text'] ?? 'Button', style: const TextStyle(color: Colors.white)),
-        );
+        return AnimatedContainer(duration: const Duration(milliseconds: 200), width: c.width, height: c.height, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(8), border: border), alignment: Alignment.center, child: Text(c.props['text'] ?? 'Button', style: const TextStyle(color: Colors.white)));
       case 'text':
-        return Container(
-          width: c.width,
-          height: c.height,
-          decoration: BoxDecoration(border: border),
-          child: Text(c.props['text'] ?? 'Text'),
-        );
+        return Container(width: c.width, height: c.height, padding: const EdgeInsets.all(6), decoration: BoxDecoration(border: border), child: Text(c.props['text'] ?? 'Text'));
       case 'image':
-        return Container(
-          width: c.width,
-          height: c.height,
-          decoration: BoxDecoration(color: Colors.grey.shade300, border: border),
-          child: c.props['url'] == null || c.props['url'] == '' ? const Icon(Icons.image) : Image.network(c.props['url'], fit: BoxFit.cover),
-        );
+        return Container(width: c.width, height: c.height, decoration: BoxDecoration(border: border, color: Colors.grey.shade300), child: c.props['url'] == null || c.props['url'] == '' ? const Icon(Icons.image) : Image.network(c.props['url'], fit: BoxFit.cover));
       default:
         return Container(width: c.width, height: c.height, decoration: BoxDecoration(border: border, color: Colors.white));
     }
@@ -278,44 +251,45 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen> {
     final type = c.type;
     final textCtrl = TextEditingController(text: c.props['text']?.toString() ?? '');
     final urlCtrl = TextEditingController(text: c.props['url']?.toString() ?? '');
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: SingleChildScrollView(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Type: $type', style: const TextStyle(fontWeight: FontWeight.bold)),
+    return SingleChildScrollView(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Type: $type', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 12),
+        Text('Position', style: const TextStyle(color: Colors.grey)),
+        const SizedBox(height: 8),
+        Row(children: [Expanded(child: Text('x: ${c.left.toStringAsFixed(0)}')), Expanded(child: Text('y: ${c.top.toStringAsFixed(0)}'))]),
+        const SizedBox(height: 12),
+        if (type == 'button' || type == 'text') ...[
+          const Text('Text'),
           const SizedBox(height: 8),
-          Text('Position'),
-          Row(children: [
-            Expanded(child: Text('x: ${c.left.toStringAsFixed(0)}')),
-            Expanded(child: Text('y: ${c.top.toStringAsFixed(0)}')),
-          ]),
-          const SizedBox(height: 12),
-          if (type == 'button' || type == 'text') ...[
-            const Text('Text'),
-            TextField(
-              controller: textCtrl,
-              onChanged: (v) {
-                final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'text': v});
-                editor.updateComponent(updated);
-                setState(() {});
-              },
-            ),
-          ],
-          if (type == 'image') ...[
-            const Text('Image URL'),
-            TextField(
-              controller: urlCtrl,
-              onChanged: (v) {
-                final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'url': v});
-                editor.updateComponent(updated);
-                setState(() {});
-              },
-            ),
-          ],
-          const SizedBox(height: 12),
-          ElevatedButton.icon(onPressed: () { editor.removeComponent(c.id); setState(() {}); }, icon: const Icon(Icons.delete), label: const Text('Delete')),
-        ]),
-      ),
+          TextField(controller: textCtrl, onChanged: (v) { final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'text': v}); editor.updateComponent(updated); setState(() {}); }, decoration: const InputDecoration(border: OutlineInputBorder())),
+        ],
+        if (type == 'image') ...[
+          const Text('Image URL'),
+          const SizedBox(height: 8),
+          TextField(controller: urlCtrl, onChanged: (v) { final updated = ComponentModel(id: c.id, type: c.type, left: c.left, top: c.top, width: c.width, height: c.height, props: {...c.props, 'url': v}); editor.updateComponent(updated); setState(() {}); }, decoration: const InputDecoration(border: OutlineInputBorder())),
+        ],
+        const SizedBox(height: 12),
+        Row(children: [Expanded(child: ElevatedButton.icon(onPressed: () { editor.removeComponent(c.id); setState(() {}); }, icon: const Icon(Icons.delete), label: const Text('Delete'))), const SizedBox(width: 8), ElevatedButton.icon(onPressed: () { /* duplicate */ }, icon: const Icon(Icons.copy), label: const Text('Duplicate'))]),
+      ]),
     );
   }
+}
+
+class _GridPainter extends CustomPainter {
+  final double step = 20.0;
+  final Paint paintGrid = Paint()..color = Colors.grey.withOpacity(0.06)..strokeWidth = 1;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (double x = 0; x < size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paintGrid);
+    }
+    for (double y = 0; y < size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paintGrid);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
